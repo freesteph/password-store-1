@@ -143,12 +143,16 @@ Nil arguments are ignored.  Output is discarded."
   (password-store--run-async "edit"
                              entry))
 
-(defun password-store--run-generate (entry password-length &optional force no-symbols)
-  (password-store--run "generate"
-                       (if force "--force")
-                       (if no-symbols "--no-symbols")
-                       entry
-                       (number-to-string password-length)))
+(defun password-store--run-generate (entry password-length)
+  (let ((existing-entry (password-store-parse-entry entry))
+        (args '("generate")))
+    (if existing-entry
+        (add-to-list 'args "--in-place")
+      (add-to-list 'args "--force"))
+    (add-to-list 'args entry)
+    (add-to-list 'args (number-to-string password-length))
+
+    (apply #'password-store--run (reverse args))))
 
 (defun password-store--run-remove (entry &optional recursive)
   (password-store--run "remove"
@@ -241,7 +245,7 @@ When CALLBACK is non-`NIL', call CALLBACK with the first line instead."
 ;;;###autoload
 (defun password-store-get-field (entry field &optional callback)
   "Return FIELD for ENTRY.
-FIELD is a string, for instance \"url\". 
+FIELD is a string, for instance \"url\".
 When CALLBACK is non-`NIL', call it with the line associated to FIELD instead.
 If FIELD equals to symbol secret, then this function reduces to `password-store-get'."
   (let* ((inhibit-message t)
@@ -346,7 +350,7 @@ Default PASSWORD-LENGTH is `password-store-password-length'."
   (unless password-length (setq password-length password-store-password-length))
   ;; A message with the output of the command is not printed because
   ;; the output contains the password.
-  (password-store--run-generate entry password-length t)
+  (password-store--run-generate entry password-length)
   nil)
 
 ;;;###autoload
